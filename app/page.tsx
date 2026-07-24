@@ -208,7 +208,10 @@ export default function Home() {
       setStarted(Boolean(parsed.started));
       setRole(parsed.role === "jogador" ? "jogador" : "mestre");
       hostToken.current = typeof parsed.hostToken === "string" ? parsed.hostToken : "";
-      playerId.current = typeof parsed.playerId === "string" ? parsed.playerId : "";
+      playerId.current =
+        typeof parsed.playerId === "string"
+          ? parsed.playerId
+          : window.localStorage.getItem("afterglow-player-id") ?? "";
       setVisitorName(typeof parsed.visitorName === "string" ? parsed.visitorName : "");
     } catch {}
   }, []);
@@ -295,7 +298,11 @@ export default function Home() {
     }
     setBusy(true);
     setLoginError("");
-    const id = playerId.current || crypto.randomUUID();
+    const id =
+      playerId.current ||
+      window.localStorage.getItem("afterglow-player-id") ||
+      crypto.randomUUID();
+    window.localStorage.setItem("afterglow-player-id", id);
     try {
       const response = await fetch("/api/rooms/1989", {
         method: "POST",
@@ -304,11 +311,14 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      playerId.current = id;
+      const persistentPlayerId =
+        typeof data.playerId === "string" ? data.playerId : id;
+      playerId.current = persistentPlayerId;
+      window.localStorage.setItem("afterglow-player-id", persistentPlayerId);
       setRoom({ ...emptyRoom, ...data.room });
       setRole("jogador");
       setStarted(true);
-      window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "jogador", playerId: id, visitorName: name }));
+      window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "jogador", playerId: persistentPlayerId, visitorName: name }));
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Não foi possível entrar na sala.");
     } finally {

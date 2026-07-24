@@ -101,10 +101,14 @@ export async function POST(
       return response({ error: "Informe seu nome para entrar." }, 400);
     }
     const room = await getRoom(code);
-    const existing = room.players.find((player) => player.id === playerId);
+    const existing = room.players.find(
+      (player) =>
+        player.id === playerId ||
+        player.name.localeCompare(playerName, "pt-BR", { sensitivity: "base" }) === 0,
+    );
     room.players = existing
       ? room.players.map((player) =>
-          player.id === playerId ? { ...player, name: playerName } : player,
+          player.id === existing.id ? { ...player, name: playerName } : player,
         )
       : [
           ...room.players,
@@ -113,7 +117,11 @@ export async function POST(
     room.version += 1;
     room.updatedAt = Date.now();
     await saveRoom(room);
-    return response({ room: publicRoom(room), shared: hasSharedStorage() });
+    return response({
+      room: publicRoom(room),
+      playerId: existing?.id ?? playerId,
+      shared: hasSharedStorage(),
+    });
   }
 
   if (body.action === "answer") {
