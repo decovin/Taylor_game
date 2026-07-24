@@ -158,7 +158,7 @@ const songs: Song[] = [
     visual: "🌼",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
-    curiosity: "Essa foi uma das músicas que ajudou a transformar Taylor Swift em um fenômeno mundial. O clipe foi gravado em uma escola real, onde o irmão de Taylor estudava. Mesmo com uma produção simples, o vídeo diversos prêmios, incluindo o MTV Video Music Award de Melhor Vídeo Feminino.",
+    curiosity: "Essa foi uma das músicas que ajudou a transformar Taylor Swift em um fenômeno mundial. O clipe foi gravado em uma escola real, onde o irmão de Taylor estudava. Mesmo com uma produção simples, o vídeo ganhou diversos prêmios, incluindo o MTV Video Music Award de Melhor Vídeo Feminino.",
     question: "💌 Se essa música fosse uma história, ela seria sobre…",
     options: ["✨ Um futuro cheio de possibilidades", "🌫️ Um presente que ainda é incerto", "🕰️ Um passado que deixou boas lembranças"],
     answer: 0,
@@ -429,7 +429,14 @@ export default function Home() {
         <span className={`connection-badge ${connectionError ? "offline" : ""}`}>{connectionError ? "Prévia" : "Ao vivo"}</span>
       </header>
       {connectionError && <div className="connection-banner">{connectionError}</div>}
-      {role === "mestre" ? (
+      {room.completed.length === songs.length ? (
+        <FinalScreen
+          players={room.players}
+          isMaster={role === "mestre"}
+          busy={busy}
+          onReset={() => void hostAction("reset")}
+        />
+      ) : role === "mestre" ? (
         <HostView
           active={active}
           completed={room.completed}
@@ -459,6 +466,57 @@ export default function Home() {
         />
       )}
     </main>
+  );
+}
+
+function FinalScreen({ players, isMaster, busy, onReset }: {
+  players: PlayerState[];
+  isMaster: boolean;
+  busy: boolean;
+  onReset: () => void;
+}) {
+  const [confirmReset, setConfirmReset] = useState(false);
+  const ranking = [...players].sort((a, b) => b.score - a.score);
+
+  return (
+    <section className="final-screen">
+      <div className="fireworks" aria-hidden="true">
+        <div className="firework firework-one">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
+        <div className="firework firework-two">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
+        <div className="firework firework-three">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
+      </div>
+      <div className="final-content">
+        <span className="final-sparkle">✦</span>
+        <p className="kicker">Experiência concluída</p>
+        <h1>Que noite!</h1>
+        <p className="final-message">Obrigado por viver cada música com atenção, curiosidade e um pouco de magia.</p>
+        <div className="final-ranking">
+          <div className="final-ranking-title"><span>Placar final</span><strong>{players.length} participantes</strong></div>
+          {ranking.length > 0 ? ranking.map((player, index) => (
+            <div className={`final-player final-player-${index + 1}`} key={player.id}>
+              <span className="final-position">{index + 1}º</span>
+              <strong>{player.name}</strong>
+              <b>{player.score} pts</b>
+            </div>
+          )) : <p className="empty-ranking">A experiência terminou sem participantes no placar.</p>}
+        </div>
+        {isMaster && (
+          <div className="final-master-actions">
+            {!confirmReset ? (
+              <button className="reset-button" onClick={() => setConfirmReset(true)}>Iniciar uma nova experiência</button>
+            ) : (
+              <div className="reset-confirm">
+                <p>Reiniciar o jogo e zerar este placar?</p>
+                <div>
+                  <button onClick={() => setConfirmReset(false)}>Cancelar</button>
+                  <button className="danger" disabled={busy} onClick={onReset}>Sim, reiniciar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
