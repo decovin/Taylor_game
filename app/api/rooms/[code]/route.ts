@@ -11,7 +11,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type ActionBody = {
-  action?: "create" | "release" | "reveal" | "finish";
+  action?: "create" | "release" | "reveal" | "show-answer" | "finish";
   stageId?: number;
 };
 
@@ -56,18 +56,20 @@ export async function POST(
   let room = { ...current, version: current.version + 1, updatedAt: Date.now() };
 
   if (body.action === "release") {
-    if (!Number.isInteger(body.stageId) || body.stageId! < 1 || body.stageId! > 8) {
+    if (!Number.isInteger(body.stageId) || body.stageId! < 1 || body.stageId! > 13) {
       return response({ error: "Etapa inválida." }, 400);
     }
-    room = { ...room, released: body.stageId!, revealed: false };
+    room = { ...room, released: body.stageId!, revealed: false, answerRevealed: false };
   } else if (body.action === "reveal") {
     room = { ...room, revealed: true };
+  } else if (body.action === "show-answer") {
+    room = { ...room, answerRevealed: true };
   } else if (body.action === "finish") {
     const completed =
       room.released && !room.completed.includes(room.released)
         ? [...room.completed, room.released]
         : room.completed;
-    room = { ...room, completed, released: null, revealed: false };
+    room = { ...room, completed, released: null, revealed: false, answerRevealed: false };
   } else {
     return response({ error: "Ação inválida." }, 400);
   }

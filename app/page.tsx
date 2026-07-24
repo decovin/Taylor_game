@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Role = "mestre" | "jogador";
-type StageType = "pergunta" | "missao" | "curiosidade";
-type Stage = {
+type Song = {
   id: number;
-  track: string;
-  era: string;
-  type: StageType;
-  prompt: string;
+  title: string;
+  category: "pergunta" | "sem-pergunta";
+  instruction: string;
+  curiosity: string;
+  closing?: string;
+  question?: string;
   options?: string[];
   answer?: number;
 };
@@ -19,81 +20,175 @@ type RoomState = {
   released: number | null;
   completed: number[];
   revealed: boolean;
+  answerRevealed: boolean;
   version: number;
   updatedAt: number;
 };
 
-const stages: Stage[] = [
-  { id: 1, track: "Música 01", era: "Era dourada", type: "missao", prompt: "Durante o refrão, repare em como o quarteto transforma a batida em pizzicato." },
-  { id: 2, track: "Música 02", era: "Era urbana", type: "pergunta", prompt: "Qual instrumento você percebeu conduzindo a melodia principal?", options: ["Violino", "Viola", "Violoncelo", "Todos juntos"], answer: 3 },
-  { id: 3, track: "Música 03", era: "Era noturna", type: "curiosidade", prompt: "Uma mesma canção pode mudar completamente de clima quando perde a letra e ganha um arranjo de cordas." },
-  { id: 4, track: "Música 04", era: "Era vermelha", type: "pergunta", prompt: "Que sensação o arranjo desta música passou para você?", options: ["Euforia", "Nostalgia", "Calma", "Suspense"], answer: 1 },
-  { id: 5, track: "Música 05", era: "Era acústica", type: "missao", prompt: "Feche os olhos por 20 segundos e tente separar os quatro instrumentos." },
-  { id: 6, track: "Música 06", era: "Era delicada", type: "pergunta", prompt: "Quantas mudanças de intensidade você percebeu no último trecho?", options: ["Nenhuma", "Uma", "Duas", "Três ou mais"], answer: 2 },
-  { id: 7, track: "Música 07", era: "Era surpresa", type: "curiosidade", prompt: "No quarteto de cordas, os músicos conversam com gestos e respirações — quase sem precisar se olhar." },
-  { id: 8, track: "Música 08", era: "Final", type: "missao", prompt: "Escolha uma palavra para resumir a noite e compartilhe com o grupo depois do aplauso." },
+const songs: Song[] = [
+  {
+    id: 1,
+    title: "💕 Love Story",
+    category: "sem-pergunta",
+    instruction: "✨ Antes de começarmos o game, a primeira música é para você entrar no clima do concerto!",
+    curiosity: "Essa música foi inspirada em Romeu e Julieta, mas Taylor decidiu dar ao casal um final feliz que Shakespeare nunca escreveu. Rumores dizem que, em seu casamento que aconteceu neste mês, Taylor entrou ao som dessa música instrumental.",
+    closing: "🎻 Tente descobrir qual instrumento você acha mais bonito… Perceba como a música faz você se sentir… Feche os olhos em alguns momentos… apenas aproveite!",
+  },
+  {
+    id: 2,
+    title: "🍂 cardigan",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "cardigan fala sobre memórias, amadurecimento e nostalgia. O nome faz referência a um casaco antigo, símbolo de algo confortável que continua tendo valor com o passar do tempo.",
+    question: "🍃 Se essa música tivesse uma estação do ano, qual seria?",
+    options: ["🌸 Primavera", "☀️ Verão", "🍂 Outono", "❄️ Inverno"],
+    answer: 2,
+  },
+  {
+    id: 3,
+    title: "🖋 Blank Space",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Essa música é uma sátira, onde Taylor exagera a imagem que a mídia criou dela.",
+    question: "🎭 Se essa música fosse uma personagem, ela seria…",
+    options: ["💪 Confiante e poderosa", "😨 Medrosa e insegura", "😊 Gentil e tranquila"],
+    answer: 0,
+  },
+  {
+    id: 4,
+    title: "✨ Enchanted",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Enchanted faz parte do álbum Speak Now, escrito inteiramente por Taylor Swift sem coautores — algo raro na indústria e motivo de muito orgulho para ela.",
+    question: "🎬 Se essa música fosse uma cena de um filme, qual seria?",
+    options: ["💕 Um primeiro encontro", "😢 Uma despedida dolorosa", "🏆 Uma grande conquista"],
+    answer: 0,
+  },
+  {
+    id: 5,
+    title: "🪞 Anti-Hero.",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Anti-Hero é uma das músicas mais pessoais de Taylor Swift. Em vez de esconder suas inseguranças, ela escolheu transformá-las em arte.",
+    question: "🪞 Pela sensação que a música passou, como você acha que Taylor expôs suas inseguranças?",
+    options: ["🤔 De forma séria e reflexiva", "😅 Com humor e ironia", "💖 De forma leve e inspiradora"],
+    answer: 1,
+  },
+  {
+    id: 6,
+    title: "💜 Lavender Haze",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "A expressão “Lavender Haze” era usada nos anos 1950 para descrever o estado de quem está completamente envolvido por uma paixão.",
+    question: "🕰️ Com qual momento do dia essa música combina mais?",
+    options: ["🌅 Uma manhã tranquila", "☀️ Uma tarde comum", "🌃 Uma noite agitada"],
+    answer: 2,
+  },
+  {
+    id: 7,
+    title: "🌫️ Fortnight",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Fortnight é uma expressão em inglês que significa um período de duas semanas. A música original é uma parceria entre Taylor Swift e Post Malone e fala de uma conexão breve, mas que deixou marcas profundas.",
+    question: "🌦️ Se essa música fosse um clima, ela seria…",
+    options: ["☀️ Sol", "⛈️ Tempestade", "🌫️ Neblina"],
+    answer: 2,
+  },
+  {
+    id: 8,
+    title: "🧣 All Too Well",
+    category: "sem-pergunta",
+    instruction: "✨ Agora, o game pausa para você se entregar e apreciar.",
+    curiosity: "All Too Well ocupa um lugar único na carreira da Taylor e é considerada por fãs e críticos como sua obra-prima. A versão original, de cerca de 5 minutos, foi lançada em 2012. Em 2021, Taylor lançou a aguardada versão estendida de 10 minutos, acompanhada de um curta-metragem escrito e dirigido pela própria Taylor.",
+    closing: "🎻 Essa música merece ser vivida do início ao fim. Será que, mesmo sem a letra, você consegue sentir toda a profundidade dessa composição?",
+  },
+  {
+    id: 9,
+    title: "🚫 We Are Never Ever Getting Back Together",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Essa música é sobre a mesma pessoa de All Too Well (a obra-prima de Taylor). Depois que o ex quis reatar o relacionamento, a resposta de Taylor acabou se tornando um dos refrões mais famosos de sua carreira.",
+    question: "💔 Se essa música fosse o fim de um relacionamento, ele terminaria…",
+    options: ["💥 Entre brigas e discussões", "🤝 Em comum acordo", "😮‍💨 Como um livramento (ufa!)"],
+    answer: 2,
+  },
+  {
+    id: 10,
+    title: "☀️ Cruel Summer",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Apesar do título, Cruel Summer não fala sobre uma estação do ano. A música retrata um período intenso e turbulento, com sentimentos à flor da pele.",
+    question: "🌡️ Se essa música tivesse uma temperatura, ela seria…",
+    options: ["❄️ Fria", "🌤️ Morna", "🔥 Quente"],
+    answer: 2,
+  },
+  {
+    id: 11,
+    title: "🤍 But Daddy I Love Him",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Em But Daddy I Love Him, Taylor explora o conflito entre seguir a própria vontade e lidar com as expectativas e opiniões das pessoas ao redor.",
+    question: "🧭 Se essa música fosse uma atitude, ela seria sobre…",
+    options: ["❤️ Seguir o próprio coração", "🏳️ Desistir sem se culpar", "😔 A dor de ter que agradar os outros"],
+    answer: 0,
+  },
+  {
+    id: 12,
+    title: "🌟 You Belong With Me",
+    category: "pergunta",
+    instruction: "Sinta a música e se prepare para a pergunta.",
+    curiosity: "Essa foi uma das músicas que ajudou a transformar Taylor Swift em um fenômeno mundial. O clipe foi gravado em uma escola real, onde o irmão de Taylor estudava. Mesmo com uma produção simples, o vídeo diversos prêmios, incluindo o MTV Video Music Award de Melhor Vídeo Feminino.",
+    question: "💌 Se essa música fosse uma história, ela seria sobre…",
+    options: ["✨ Um futuro cheio de possibilidades", "🌫️ Um presente que ainda é incerto", "🕰️ Um passado que deixou boas lembranças"],
+    answer: 0,
+  },
+  {
+    id: 13,
+    title: "💃 Shake It Off",
+    category: "sem-pergunta",
+    instruction: "✨ Agora, o game termina para você aproveitar o encerramento sem distrações.",
+    curiosity: "Essa música é sobre não se importar com as críticas e seguir em frente com leveza. Shake it off é uma expressão em inglês que significa “não se deixar afetar”. Mas shake também significa sacudir, criando um trocadilho com a ideia da música: sacudir as críticas, e sacudir o corpo (dançar). A música marcou a transição definitiva de Taylor Swift para o pop e se tornou um de seus maiores sucessos.",
+    closing: "🎻 Aproveite esse último momento e shake it off!",
+  },
 ];
 
-const players = [
-  { name: "Bia", score: 1840, color: "#ff4fa3" },
-  { name: "Vini", score: 1560, color: "#6c63ff" },
-  { name: "Léo", score: 1320, color: "#ffb21a" },
-  { name: "Maju", score: 980, color: "#31caa0" },
-];
-
-const typeLabels: Record<StageType, string> = {
-  pergunta: "Pergunta",
-  missao: "Missão de escuta",
-  curiosidade: "Curiosidade",
+const emptyRoom: RoomState = {
+  code: "1989",
+  released: null,
+  completed: [],
+  revealed: false,
+  answerRevealed: false,
+  version: 0,
+  updatedAt: 0,
 };
 
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [role, setRole] = useState<Role>("mestre");
-  const [room, setRoom] = useState<RoomState>({
-    code: "1989",
-    released: null,
-    completed: [],
-    revealed: false,
-    version: 0,
-    updatedAt: 0,
-  });
+  const [room, setRoom] = useState<RoomState>(emptyRoom);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showScore, setShowScore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const hostToken = useRef("");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("afterglow-demo");
+    const saved = window.localStorage.getItem("afterglow-session");
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved);
       setStarted(Boolean(parsed.started));
       setRole(parsed.role === "jogador" ? "jogador" : "mestre");
-      hostToken.current =
-        typeof parsed.hostToken === "string" ? parsed.hostToken : "";
+      hostToken.current = typeof parsed.hostToken === "string" ? parsed.hostToken : "";
     } catch {}
   }, []);
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      "afterglow-demo",
-      JSON.stringify({ started, role, hostToken: hostToken.current }),
-    );
-  }, [started, role]);
-
   const syncRoom = useCallback(async () => {
     try {
-      const result = await fetch("/api/rooms/1989", { cache: "no-store" });
-      if (!result.ok) throw new Error("Não foi possível atualizar a sala.");
-      const data = await result.json();
-      setRoom(data.room);
-      setConnectionError(
-        data.shared
-          ? ""
-          : "Modo local: conecte o armazenamento para usar celulares diferentes.",
-      );
+      const response = await fetch("/api/rooms/1989", { cache: "no-store" });
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setRoom({ ...emptyRoom, ...data.room });
+      setConnectionError(data.shared ? "" : "Prévia local · a sincronização entre celulares funciona após conectar o Redis na Vercel.");
     } catch {
       setConnectionError("Conexão instável. Tentando novamente…");
     }
@@ -106,61 +201,52 @@ export default function Home() {
     return () => window.clearInterval(interval);
   }, [started, syncRoom]);
 
-  useEffect(() => {
-    setSelectedAnswer(null);
-    setShowScore(false);
-  }, [room.released]);
+  useEffect(() => setSelectedAnswer(null), [room.released, room.revealed]);
 
   const active = useMemo(
-    () => stages.find((stage) => stage.id === room.released) ?? null,
+    () => songs.find((song) => song.id === room.released) ?? null,
     [room.released],
   );
 
   async function enterAsMaster() {
     setBusy(true);
-    setConnectionError("");
     try {
-      const result = await fetch("/api/rooms/1989", {
+      const response = await fetch("/api/rooms/1989", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create" }),
       });
-      const data = await result.json();
-      if (!result.ok) throw new Error(data.error);
+      const data = await response.json();
+      if (!response.ok) throw new Error();
       hostToken.current = data.hostToken;
-      setRoom(data.room);
+      setRoom({ ...emptyRoom, ...data.room });
       setRole("mestre");
       setStarted(true);
-      window.localStorage.setItem(
-        "afterglow-demo",
-        JSON.stringify({
-          started: true,
-          role: "mestre",
-          hostToken: data.hostToken,
-        }),
-      );
+      window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "mestre", hostToken: data.hostToken }));
     } catch {
-      setConnectionError("Não foi possível criar a sala. Tente novamente.");
+      setConnectionError("Não foi possível criar a sala.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function hostAction(action: "release" | "reveal" | "finish", stageId?: number) {
+  function enterAsPlayer() {
+    setRole("jogador");
+    setStarted(true);
+    window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "jogador" }));
+  }
+
+  async function hostAction(action: "release" | "reveal" | "show-answer" | "finish", stageId?: number) {
     setBusy(true);
     try {
-      const result = await fetch("/api/rooms/1989", {
+      const response = await fetch("/api/rooms/1989", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-afterglow-host": hostToken.current,
-        },
+        headers: { "Content-Type": "application/json", "x-afterglow-host": hostToken.current },
         body: JSON.stringify({ action, stageId }),
       });
-      const data = await result.json();
-      if (!result.ok) throw new Error(data.error);
-      setRoom(data.room);
-      setConnectionError("");
+      const data = await response.json();
+      if (!response.ok) throw new Error();
+      setRoom({ ...emptyRoom, ...data.room });
     } catch {
       setConnectionError("Comando não enviado. Entre novamente como Mestre.");
     } finally {
@@ -174,25 +260,20 @@ export default function Home() {
         <div className="ambient ambient-one" />
         <div className="ambient ambient-two" />
         <section className="welcome">
-          <div className="eyebrow"><span className="live-dot" /> Edição Candlelight</div>
+          <div className="eyebrow"><span className="live-dot" /> Candlelight Taylor Swift</div>
           <div className="brand-mark">A</div>
-          <p className="kicker">Uma noite em quatro atos</p>
+          <p className="kicker">Uma noite para sentir</p>
           <h1>Afterglow</h1>
-          <p className="intro">Ouça além da música. Um jogo rápido para transformar o concerto em uma experiência compartilhada.</p>
+          <p className="intro">Ouça além da música. Uma experiência entre amigos para descobrir histórias, sensações e novos detalhes em cada arranjo.</p>
           <div className="join-card">
-            <div className="room-code">
-              <span>Sala da noite</span>
-              <strong>1989</strong>
-            </div>
+            <div className="room-code"><span>Código da sala</span><strong>1989</strong></div>
             <button className="primary-button" disabled={busy} onClick={enterAsMaster}>
-              {busy ? "Criando sala…" : "Criar sala como Mestre"} <span>→</span>
+              {busy ? "Preparando a noite…" : "Entrar como Mestre"} <span>→</span>
             </button>
-            <button className="secondary-button" onClick={() => { setRole("jogador"); setStarted(true); }}>
-              Entrar como Jogador
-            </button>
+            <button className="secondary-button" onClick={enterAsPlayer}>Entrar como visitante</button>
           </div>
           {connectionError && <p className="connection-error">{connectionError}</p>}
-          <p className="fine-print">Protótipo da mecânica · conteúdo demonstrativo</p>
+          <p className="fine-print">13 músicas · você não precisa conhecer Taylor Swift</p>
         </section>
       </main>
     );
@@ -204,69 +285,84 @@ export default function Home() {
         <button className="mini-brand" onClick={() => setStarted(false)} aria-label="Voltar ao início">A</button>
         <div className="room-info">
           <span>SALA 1989</span>
-          <strong>{role === "mestre" ? "Painel do Mestre" : "Você é Vini"}</strong>
+          <strong>{role === "mestre" ? "Painel do Mestre" : "Modo visitante"}</strong>
         </div>
-        <span className={`connection-badge ${connectionError ? "offline" : ""}`}>
-          {connectionError ? "Reconectando" : "Ao vivo"}
-        </span>
+        <span className={`connection-badge ${connectionError ? "offline" : ""}`}>{connectionError ? "Prévia" : "Ao vivo"}</span>
       </header>
-
       {connectionError && <div className="connection-banner">{connectionError}</div>}
-
-      {showScore ? (
-        <Scoreboard onClose={() => setShowScore(false)} />
-      ) : role === "mestre" ? (
+      {role === "mestre" ? (
         <HostView
           active={active}
           completed={room.completed}
           revealed={room.revealed}
+          answerRevealed={room.answerRevealed}
+          busy={busy}
           onRelease={(id) => void hostAction("release", id)}
-          onReveal={() => void hostAction("reveal")}
+          onQuestion={() => void hostAction("reveal")}
+          onAnswer={() => void hostAction("show-answer")}
           onFinish={() => void hostAction("finish")}
-          onScore={() => setShowScore(true)}
         />
       ) : (
         <PlayerView
           active={active}
           selectedAnswer={selectedAnswer}
           revealed={room.revealed}
+          answerRevealed={room.answerRevealed}
           onAnswer={setSelectedAnswer}
-          onScore={() => setShowScore(true)}
         />
       )}
     </main>
   );
 }
 
-function HostView({ active, completed, revealed, onRelease, onReveal, onFinish, onScore }: {
-  active: Stage | null; completed: number[]; revealed: boolean;
-  onRelease: (id: number) => void; onReveal: () => void; onFinish: () => void; onScore: () => void;
+function HostView({ active, completed, revealed, answerRevealed, busy, onRelease, onQuestion, onAnswer, onFinish }: {
+  active: Song | null;
+  completed: number[];
+  revealed: boolean;
+  answerRevealed: boolean;
+  busy: boolean;
+  onRelease: (id: number) => void;
+  onQuestion: () => void;
+  onAnswer: () => void;
+  onFinish: () => void;
 }) {
   if (active) {
+    const questionMoment = active.category === "pergunta" && revealed;
     return (
       <section className="stage-screen">
         <div className="status-row">
-          <span className={`type-pill ${active.type}`}>{typeLabels[active.type]}</span>
-          <span className="broadcasting"><i /> No ar para 4 jogadores</span>
+          <span className={`type-pill ${active.category}`}>{questionMoment ? "Pergunta no ar" : "Música no ar"}</span>
+          <span className="broadcasting"><i /> Visitantes sincronizados</span>
         </div>
-        <p className="track-label">{active.track} · {active.era}</p>
-        <h2>{active.prompt}</h2>
-        {active.options && (
-          <div className="answers compact">
-            {active.options.map((option, index) => (
-              <div className={`answer-card ${revealed && index === active.answer ? "correct" : ""}`} key={option}>
-                <span>{String.fromCharCode(65 + index)}</span>{option}
-              </div>
-            ))}
-          </div>
+        {!questionMoment ? (
+          <>
+            <p className="track-label">Momento de apreciação</p>
+            <h2>{active.title}</h2>
+            <p className="instruction-text">{active.instruction}</p>
+            <div className="curiosity-card"><span>Você sabia?</span><p>{active.curiosity}</p></div>
+            {active.closing && <p className="closing-text">{active.closing}</p>}
+          </>
+        ) : (
+          <>
+            <p className="track-label">{active.title}</p>
+            <h2 className="question-title">{active.question}</h2>
+            <div className="answers compact">
+              {active.options?.map((option, index) => (
+                <div className={`answer-card ${answerRevealed && index === active.answer ? "correct" : ""}`} key={option}>
+                  <span>{String.fromCharCode(65 + index)}</span>{option}
+                </div>
+              ))}
+            </div>
+            {answerRevealed && <div className="guide-answer">Resposta do guia: <strong>{active.options?.[active.answer!]}</strong></div>}
+          </>
         )}
         <div className="host-actions">
-          {active.type === "pergunta" && !revealed && <button className="primary-button" onClick={onReveal}>Revelar resposta</button>}
-          <button className={revealed || active.type !== "pergunta" ? "primary-button" : "secondary-button"} onClick={onFinish}>
-            Encerrar etapa
-          </button>
+          {active.category === "pergunta" && !revealed && <button disabled={busy} className="primary-button" onClick={onQuestion}>Liberar pergunta →</button>}
+          {questionMoment && !answerRevealed && <button disabled={busy} className="primary-button" onClick={onAnswer}>Mostrar resposta</button>}
+          {(active.category === "sem-pergunta" || answerRevealed) && <button disabled={busy} className="primary-button" onClick={onFinish}>Encerrar música</button>}
+          {active.category === "pergunta" && !answerRevealed && <button disabled={busy} className="secondary-button" onClick={onFinish}>Encerrar sem mostrar resposta</button>}
         </div>
-        <p className="host-hint">Você controla o ritmo. Nada avança sozinho.</p>
+        <p className="host-hint">Nada avança sozinho. Você controla cada momento.</p>
       </section>
     );
   }
@@ -277,25 +373,24 @@ function HostView({ active, completed, revealed, onRelease, onReveal, onFinish, 
         <div>
           <p className="kicker">Setlist flexível</p>
           <h1>Qual é a próxima?</h1>
-          <p>Libere qualquer etapa quando reconhecer a música.</p>
+          <p>Toque na música assim que o quarteto começar.</p>
         </div>
-        <button className="score-button" onClick={onScore}>⌁ Placar</button>
+        <div className="master-badge">MESTRE</div>
       </div>
       <div className="progress-wrap">
-        <div><span>Experiência</span><strong>{completed.length} de {stages.length}</strong></div>
-        <div className="progress-bar"><i style={{ width: `${(completed.length / stages.length) * 100}%` }} /></div>
+        <div><span>Experiência da noite</span><strong>{completed.length} de {songs.length}</strong></div>
+        <div className="progress-bar"><i style={{ width: `${(completed.length / songs.length) * 100}%` }} /></div>
       </div>
       <div className="stage-grid">
-        {stages.map((stage) => {
-          const done = completed.includes(stage.id);
+        {songs.map((song) => {
+          const done = completed.includes(song.id);
           return (
-            <button className={`stage-card ${done ? "done" : ""}`} key={stage.id} onClick={() => !done && onRelease(stage.id)} disabled={done}>
-              <div className="stage-number">{done ? "✓" : String(stage.id).padStart(2, "0")}</div>
+            <button className={`stage-card ${done ? "done" : ""}`} key={song.id} onClick={() => !done && onRelease(song.id)} disabled={done}>
+              <div className="stage-number">{done ? "✓" : String(song.id).padStart(2, "0")}</div>
               <div>
-                <span className={`type-dot ${stage.type}`} />
-                <small>{typeLabels[stage.type]}</small>
-                <strong>{stage.track}</strong>
-                <p>{stage.era}</p>
+                <span className={`type-dot ${song.category}`} />
+                <small>{song.category === "pergunta" ? "Com pergunta" : "Apreciação"}</small>
+                <strong>{song.title}</strong>
               </div>
               <span className="release-icon">{done ? "Feita" : "Liberar →"}</span>
             </button>
@@ -306,78 +401,67 @@ function HostView({ active, completed, revealed, onRelease, onReveal, onFinish, 
   );
 }
 
-function PlayerView({ active, selectedAnswer, revealed, onAnswer, onScore }: {
-  active: Stage | null; selectedAnswer: number | null; revealed: boolean;
-  onAnswer: (index: number) => void; onScore: () => void;
+function PlayerView({ active, selectedAnswer, revealed, answerRevealed, onAnswer }: {
+  active: Song | null;
+  selectedAnswer: number | null;
+  revealed: boolean;
+  answerRevealed: boolean;
+  onAnswer: (index: number) => void;
 }) {
   if (!active) {
     return (
       <section className="waiting-screen">
         <div className="sound-orbit"><span>♪</span><i /><i /><i /></div>
-        <p className="kicker">O concerto está acontecendo</p>
-        <h1>Escute o momento.</h1>
-        <p>O Mestre vai liberar a próxima experiência assim que a música começar.</p>
-        <div className="player-strip">
-          {players.map((player) => <span key={player.name} style={{ background: player.color }}>{player.name[0]}</span>)}
-          <strong>4 conectados</strong>
+        <p className="kicker">A experiência continua</p>
+        <h1>Viva o concerto.</h1>
+        <p>Quando chegar o próximo momento, ele aparecerá aqui — sem você precisar atualizar a tela.</p>
+        <div className="waiting-chip"><span className="live-dot" /> Esperando o Mestre</div>
+      </section>
+    );
+  }
+
+  const questionMoment = active.category === "pergunta" && revealed;
+  if (!questionMoment) {
+    return (
+      <section className="stage-screen player appreciation">
+        <div className="status-row">
+          <span className={`type-pill ${active.category}`}>{active.category === "pergunta" ? "Prepare os sentidos" : "Só aproveite"}</span>
+          <span className="track-label">No ar</span>
         </div>
-        <button className="score-button" onClick={onScore}>Ver placar parcial</button>
+        <h2>{active.title}</h2>
+        <p className="instruction-text">{active.instruction}</p>
+        <div className="curiosity-card"><span>Você sabia?</span><p>{active.curiosity}</p></div>
+        {active.closing && <p className="closing-text">{active.closing}</p>}
+        {active.category === "pergunta" && <div className="waiting-question"><i /> A pergunta chega quando a música terminar</div>}
       </section>
     );
   }
 
   return (
     <section className="stage-screen player">
-      <div className="timer-line"><i /></div>
       <div className="status-row">
-        <span className={`type-pill ${active.type}`}>{typeLabels[active.type]}</span>
-        <span className="track-label">{active.track}</span>
+        <span className="type-pill pergunta">Sua percepção</span>
+        <span className="track-label">{active.title}</span>
       </div>
-      <h2>{active.prompt}</h2>
-      {active.options ? (
-        <div className="answers">
-          {active.options.map((option, index) => {
-            const chosen = selectedAnswer === index;
-            const correct = revealed && index === active.answer;
-            return (
-              <button
-                className={`answer-card ${chosen ? "selected" : ""} ${correct ? "correct" : ""}`}
-                onClick={() => selectedAnswer === null && onAnswer(index)}
-                key={option}
-              >
-                <span>{String.fromCharCode(65 + index)}</span>{option}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="mission-card">
-          <span>{active.type === "missao" ? "◎" : "✦"}</span>
-          <p>{active.type === "missao" ? "Faça no seu tempo — não precisa tocar na tela." : "Guarde essa ideia para conversar depois do show."}</p>
-        </div>
-      )}
-      {selectedAnswer !== null && !revealed && <p className="answer-status">Resposta enviada · esperando o Mestre</p>}
-    </section>
-  );
-}
-
-function Scoreboard({ onClose }: { onClose: () => void }) {
-  return (
-    <section className="score-screen">
-      <button className="back-button" onClick={onClose}>← Voltar</button>
-      <p className="kicker">Placar da noite</p>
-      <h1>O quarteto está afinado</h1>
-      <div className="podium">
-        {players.map((player, index) => (
-          <div className="score-row" key={player.name}>
-            <span className="rank">{index + 1}</span>
-            <i style={{ background: player.color }}>{player.name[0]}</i>
-            <strong>{player.name}</strong>
-            <b>{player.score.toLocaleString("pt-BR")}</b>
-          </div>
-        ))}
+      <h2 className="question-title">{active.question}</h2>
+      <div className="answers single-column">
+        {active.options?.map((option, index) => {
+          const chosen = selectedAnswer === index;
+          const correct = answerRevealed && index === active.answer;
+          const dimmed = answerRevealed && index !== active.answer;
+          return (
+            <button
+              className={`answer-card ${chosen ? "selected" : ""} ${correct ? "correct" : ""} ${dimmed ? "dimmed" : ""}`}
+              onClick={() => selectedAnswer === null && !answerRevealed && onAnswer(index)}
+              key={option}
+            >
+              <span>{String.fromCharCode(65 + index)}</span>{option}
+            </button>
+          );
+        })}
       </div>
-      <div className="group-insight"><span>✦</span><p><strong>Momento do grupo</strong>3 de 4 pessoas escolheram “nostalgia” na última música.</p></div>
+      {selectedAnswer !== null && !answerRevealed && <p className="answer-status">Resposta registrada · espere o Mestre</p>}
+      {answerRevealed && <div className="result-message"><span>✦</span><p><strong>Resposta do guia</strong>{active.options?.[active.answer!]}</p></div>}
     </section>
   );
 }

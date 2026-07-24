@@ -5,6 +5,7 @@ export type RoomState = {
   released: number | null;
   completed: number[];
   revealed: boolean;
+  answerRevealed: boolean;
   version: number;
   updatedAt: number;
 };
@@ -42,6 +43,7 @@ export function emptyRoom(code: string): RoomState {
     released: null,
     completed: [],
     revealed: false,
+    answerRevealed: false,
     version: 0,
     updatedAt: Date.now(),
   };
@@ -50,9 +52,11 @@ export function emptyRoom(code: string): RoomState {
 export async function getRoom(code: string) {
   const redis = redisClient();
   if (redis) {
-    return (await redis.get<RoomState>(roomKey(code))) ?? emptyRoom(code);
+    const room = await redis.get<RoomState>(roomKey(code));
+    return room ? { ...emptyRoom(code), ...room } : emptyRoom(code);
   }
-  return memoryRooms.get(code) ?? emptyRoom(code);
+  const room = memoryRooms.get(code);
+  return room ? { ...emptyRoom(code), ...room } : emptyRoom(code);
 }
 
 export async function saveRoom(room: RoomState) {

@@ -4,7 +4,7 @@
   "description": "Um jogo rápido para acompanhar uma noite Candlelight entre amigos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fffaf4",
-  "theme_color": "#17121e",
+  "background_color": "#08070a",
+  "theme_color": "#08070a",
   "orientation": "portrait"
 }
