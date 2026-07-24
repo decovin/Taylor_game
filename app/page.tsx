@@ -12,6 +12,7 @@ type PlayerState = {
 type Song = {
   id: number;
   title: string;
+  visual: string;
   category: "pergunta" | "sem-pergunta";
   instruction: string;
   curiosity: string;
@@ -28,6 +29,7 @@ type RoomState = {
   revealed: boolean;
   answerRevealed: boolean;
   players: PlayerState[];
+  answeredCount: number;
   version: number;
   updatedAt: number;
 };
@@ -36,6 +38,7 @@ const songs: Song[] = [
   {
     id: 1,
     title: "Love Story",
+    visual: "💍",
     category: "sem-pergunta",
     instruction: "✨ Antes de começarmos o game, a primeira música é para você entrar no clima do concerto!",
     curiosity: "Essa música foi inspirada em Romeu e Julieta, mas Taylor decidiu dar ao casal um final feliz que Shakespeare nunca escreveu. Rumores dizem que, em seu casamento que aconteceu neste mês, Taylor entrou ao som dessa música instrumental.",
@@ -44,6 +47,7 @@ const songs: Song[] = [
   {
     id: 2,
     title: "cardigan",
+    visual: "🧶",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "cardigan fala sobre memórias, amadurecimento e nostalgia. O nome faz referência a um casaco antigo, símbolo de algo confortável que continua tendo valor com o passar do tempo.",
@@ -54,6 +58,7 @@ const songs: Song[] = [
   {
     id: 3,
     title: "Blank Space",
+    visual: "✒",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa música é uma sátira, onde Taylor exagera a imagem que a mídia criou dela.",
@@ -64,6 +69,7 @@ const songs: Song[] = [
   {
     id: 4,
     title: "Enchanted",
+    visual: "🪄",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Enchanted faz parte do álbum Speak Now, escrito inteiramente por Taylor Swift sem coautores — algo raro na indústria e motivo de muito orgulho para ela.",
@@ -74,6 +80,7 @@ const songs: Song[] = [
   {
     id: 5,
     title: "Anti-Hero",
+    visual: "🎭",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Anti-Hero é uma das músicas mais pessoais de Taylor Swift. Em vez de esconder suas inseguranças, ela escolheu transformá-las em arte.",
@@ -84,6 +91,7 @@ const songs: Song[] = [
   {
     id: 6,
     title: "Lavender Haze",
+    visual: "🪻",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "A expressão “Lavender Haze” era usada nos anos 1950 para descrever o estado de quem está completamente envolvido por uma paixão.",
@@ -94,6 +102,7 @@ const songs: Song[] = [
   {
     id: 7,
     title: "Fortnight",
+    visual: "▦",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Fortnight é uma expressão em inglês que significa um período de duas semanas. A música original é uma parceria entre Taylor Swift e Post Malone e fala de uma conexão breve, mas que deixou marcas profundas.",
@@ -104,6 +113,7 @@ const songs: Song[] = [
   {
     id: 8,
     title: "All Too Well",
+    visual: "🧣",
     category: "sem-pergunta",
     instruction: "✨ Agora, o game pausa para você se entregar e apreciar.",
     curiosity: "All Too Well ocupa um lugar único na carreira da Taylor e é considerada por fãs e críticos como sua obra-prima. A versão original, de cerca de 5 minutos, foi lançada em 2012. Em 2021, Taylor lançou a aguardada versão estendida de 10 minutos, acompanhada de um curta-metragem escrito e dirigido pela própria Taylor.",
@@ -112,6 +122,7 @@ const songs: Song[] = [
   {
     id: 9,
     title: "We Are Never Ever Getting Back Together",
+    visual: "💔",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa música é sobre a mesma pessoa de All Too Well (a obra-prima de Taylor). Depois que o ex quis reatar o relacionamento, a resposta de Taylor acabou se tornando um dos refrões mais famosos de sua carreira.",
@@ -122,6 +133,7 @@ const songs: Song[] = [
   {
     id: 10,
     title: "Cruel Summer",
+    visual: "⚄",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Apesar do título, Cruel Summer não fala sobre uma estação do ano. A música retrata um período intenso e turbulento, com sentimentos à flor da pele.",
@@ -132,6 +144,7 @@ const songs: Song[] = [
   {
     id: 11,
     title: "But Daddy I Love Him",
+    visual: "🤲",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Em But Daddy I Love Him, Taylor explora o conflito entre seguir a própria vontade e lidar com as expectativas e opiniões das pessoas ao redor.",
@@ -142,6 +155,7 @@ const songs: Song[] = [
   {
     id: 12,
     title: "You Belong With Me",
+    visual: "🌼",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa foi uma das músicas que ajudou a transformar Taylor Swift em um fenômeno mundial. O clipe foi gravado em uma escola real, onde o irmão de Taylor estudava. Mesmo com uma produção simples, o vídeo diversos prêmios, incluindo o MTV Video Music Award de Melhor Vídeo Feminino.",
@@ -152,6 +166,7 @@ const songs: Song[] = [
   {
     id: 13,
     title: "Shake It Off",
+    visual: "✦",
     category: "sem-pergunta",
     instruction: "✨ Agora, o game termina para você aproveitar o encerramento sem distrações.",
     curiosity: "Essa música é sobre não se importar com as críticas e seguir em frente com leveza. Shake it off é uma expressão em inglês que significa “não se deixar afetar”. Mas shake também significa sacudir, criando um trocadilho com a ideia da música: sacudir as críticas, e sacudir o corpo (dançar). A música marcou a transição definitiva de Taylor Swift para o pop e se tornou um de seus maiores sucessos.",
@@ -166,6 +181,7 @@ const emptyRoom: RoomState = {
   revealed: false,
   answerRevealed: false,
   players: [],
+  answeredCount: 0,
   version: 0,
   updatedAt: 0,
 };
@@ -225,6 +241,12 @@ export default function Home() {
     () => room.players.find((player) => player.id === playerId.current),
     [room.players],
   );
+  const currentPosition = useMemo(() => {
+    if (!currentPlayer) return 0;
+    return [...room.players]
+      .sort((a, b) => b.score - a.score)
+      .findIndex((player) => player.id === currentPlayer.id) + 1;
+  }, [currentPlayer, room.players]);
 
   async function enterAsMaster() {
     if (!masterPassword) {
@@ -283,7 +305,7 @@ export default function Home() {
     }
   }
 
-  async function hostAction(action: "release" | "reveal" | "show-answer" | "finish" | "reset", stageId?: number) {
+  async function hostAction(action: "release" | "reveal" | "show-answer" | "finish" | "reset-current" | "reset", stageId?: number) {
     setBusy(true);
     try {
       const response = await fetch("/api/rooms/1989", {
@@ -333,7 +355,7 @@ export default function Home() {
           <div className="eyebrow"><span className="live-dot" /> Candlelight Taylor Swift</div>
           <div className="brand-mark">A</div>
           <p className="kicker">Uma noite para sentir</p>
-          <h1>Afterglow</h1>
+          <h1>Candlelight Game</h1>
           <p className="intro">Ouça além da música. Uma experiência entre amigos para descobrir histórias, sensações e novos detalhes em cada arranjo.</p>
           <div className="join-card">
             <div className="room-code"><span>Código da sala</span><strong>1989</strong></div>
@@ -376,10 +398,12 @@ export default function Home() {
           answerRevealed={room.answerRevealed}
           busy={busy}
           players={room.players}
+          answeredCount={room.answeredCount}
           onRelease={(id) => void hostAction("release", id)}
           onQuestion={() => void hostAction("reveal")}
           onAnswer={() => void hostAction("show-answer")}
           onFinish={() => void hostAction("finish")}
+          onResetCurrent={() => void hostAction("reset-current")}
           onReset={() => void hostAction("reset")}
         />
       ) : (
@@ -389,6 +413,8 @@ export default function Home() {
           revealed={room.revealed}
           answerRevealed={room.answerRevealed}
           player={currentPlayer}
+          completed={room.completed}
+          position={currentPosition}
           onAnswer={(index) => void submitAnswer(index)}
         />
       )}
@@ -396,20 +422,23 @@ export default function Home() {
   );
 }
 
-function HostView({ active, completed, revealed, answerRevealed, busy, players, onRelease, onQuestion, onAnswer, onFinish, onReset }: {
+function HostView({ active, completed, revealed, answerRevealed, busy, players, answeredCount, onRelease, onQuestion, onAnswer, onFinish, onResetCurrent, onReset }: {
   active: Song | null;
   completed: number[];
   revealed: boolean;
   answerRevealed: boolean;
   busy: boolean;
   players: PlayerState[];
+  answeredCount: number;
   onRelease: (id: number) => void;
   onQuestion: () => void;
   onAnswer: () => void;
   onFinish: () => void;
+  onResetCurrent: () => void;
   onReset: () => void;
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmCurrentReset, setConfirmCurrentReset] = useState(false);
 
   if (active) {
     const questionMoment = active.category === "pergunta" && revealed;
@@ -422,6 +451,7 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
         {!questionMoment ? (
           <>
             <p className="track-label">Momento de apreciação</p>
+            <SongVisual song={active} />
             <h2>{active.title}</h2>
             <p className="instruction-text">{active.instruction}</p>
             <div className="curiosity-card"><span>Você sabia?</span><p>{active.curiosity}</p></div>
@@ -431,6 +461,10 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
           <>
             <p className="track-label">{active.title}</p>
             <h2 className="question-title">{active.question}</h2>
+            <div className="response-progress" aria-live="polite">
+              <strong>{answeredCount} de {players.length}</strong> responderam
+              <span>{Math.max(0, players.length - answeredCount)} ainda faltam</span>
+            </div>
             <div className="answers compact">
               {active.options?.map((option, index) => (
                 <div className={`answer-card ${answerRevealed && index === active.answer ? "correct" : ""}`} key={option}>
@@ -446,6 +480,15 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
           {questionMoment && !answerRevealed && <button disabled={busy} className="primary-button" onClick={onAnswer}>Mostrar resposta</button>}
           {(active.category === "sem-pergunta" || answerRevealed) && <button disabled={busy} className="primary-button" onClick={onFinish}>Encerrar música</button>}
           {active.category === "pergunta" && !answerRevealed && <button disabled={busy} className="secondary-button" onClick={onFinish}>Encerrar sem mostrar resposta</button>}
+          {!confirmCurrentReset ? (
+            <button className="current-reset-button" disabled={busy} onClick={() => setConfirmCurrentReset(true)}>Recomeçar somente esta música</button>
+          ) : (
+            <div className="current-reset-confirm">
+              <p>Apagar respostas e pontos somente desta música?</p>
+              <button onClick={() => setConfirmCurrentReset(false)}>Cancelar</button>
+              <button className="danger" disabled={busy} onClick={() => { onResetCurrent(); setConfirmCurrentReset(false); }}>Sim, recomeçar</button>
+            </div>
+          )}
         </div>
         <p className="host-hint">Nada avança sozinho. Você controla cada momento.</p>
       </section>
@@ -508,12 +551,14 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
   );
 }
 
-function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, onAnswer }: {
+function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, completed, position, onAnswer }: {
   active: Song | null;
   selectedAnswer: number | null;
   revealed: boolean;
   answerRevealed: boolean;
   player?: PlayerState;
+  completed: number[];
+  position: number;
   onAnswer: (index: number) => void;
 }) {
   if (!active) {
@@ -523,7 +568,14 @@ function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, 
         <p className="kicker">A experiência continua</p>
         <h1>Viva o concerto.</h1>
         <p>Quando chegar o próximo momento, ele aparecerá aqui — sem você precisar atualizar a tela.</p>
-        <div className="personal-score"><span>Sua pontuação</span><strong>{player?.score ?? 0} pts</strong></div>
+        <div className="waiting-progress">
+          <div><span>Experiência da noite</span><strong>{completed.length} de {songs.length}</strong></div>
+          <div className="progress-bar"><i style={{ width: `${(completed.length / songs.length) * 100}%` }} /></div>
+        </div>
+        <div className="waiting-stats">
+          <div><span>Sua pontuação</span><strong>{player?.score ?? 0} pts</strong></div>
+          <div><span>Colocação atual</span><strong>{position ? `${position}º lugar` : "—"}</strong></div>
+        </div>
         <div className="waiting-chip"><span className="live-dot" /> Esperando o Mestre</div>
       </section>
     );
@@ -537,6 +589,7 @@ function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, 
           <span className={`type-pill ${active.category}`}>{active.category === "pergunta" ? "Prepare os sentidos" : "Só aproveite"}</span>
           <span className="track-label">No ar</span>
         </div>
+        <SongVisual song={active} />
         <h2>{active.title}</h2>
         <p className="instruction-text">{active.instruction}</p>
         <div className="curiosity-card"><span>Você sabia?</span><p>{active.curiosity}</p></div>
@@ -572,5 +625,15 @@ function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, 
       {selectedAnswer !== null && !answerRevealed && <p className="answer-status">Resposta registrada · espere o Mestre</p>}
       {answerRevealed && <div className="result-message"><span>✦</span><p><strong>Resposta do guia</strong>{active.options?.[active.answer!]}</p></div>}
     </section>
+  );
+}
+
+function SongVisual({ song }: { song: Song }) {
+  return (
+    <div className={`song-visual song-visual-${song.id}`} aria-hidden="true">
+      <span>{song.visual}</span>
+      <i />
+      <i />
+    </div>
   );
 }

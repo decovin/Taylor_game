@@ -12,7 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type ActionBody = {
-  action?: "login" | "join" | "answer" | "release" | "reveal" | "show-answer" | "finish" | "reset";
+  action?: "login" | "join" | "answer" | "release" | "reveal" | "show-answer" | "finish" | "reset-current" | "reset";
   stageId?: number;
   answerIndex?: number;
   password?: string;
@@ -38,7 +38,14 @@ const correctAnswers: Record<number, number> = {
 
 function publicRoom<T extends { answers?: unknown }>(room: T) {
   const { answers: _answers, ...safeRoom } = room;
-  return safeRoom;
+  const roomWithAnswers = room as T & {
+    released?: number | null;
+    answers?: Record<string, Record<string, number>>;
+  };
+  const answeredCount = roomWithAnswers.released
+    ? Object.keys(roomWithAnswers.answers?.[String(roomWithAnswers.released)] ?? {}).length
+    : 0;
+  return { ...safeRoom, answeredCount };
 }
 
 function response(data: unknown, status = 200) {
@@ -169,6 +176,31 @@ export async function POST(
         ? [...room.completed, room.released]
         : room.completed;
     room = { ...room, completed, released: null, revealed: false, answerRevealed: false };
+  } else if (body.action === "reset-current") {
+    const stageId = current.released;
+    if (!stageId) {
+      return response({ error: "Não há uma música ativa." }, 400);
+    }
+    const stageKey = String(stageId);
+    const stageAnswers = current.answers[stageKey] ?? {};
+    const correctAnswer = correctAnswers[stageId];
+    room = {
+      ...room,
+      revealed: false,
+      answerRevealed: false,
+      answers: Object.fromEntries(
+        Object.entries(current.answers).filter(([key]) => key !== stageKey),
+      ),
+      players: current.players.map((player) => {
+        if (!player.answered.includes(stageId)) return player;
+        const earnedPoints = stageAnswers[player.id] === correctAnswer ? 100 : 0;
+        return {
+          ...player,
+          score: Math.max(0, player.score - earnedPoints),
+          answered: player.answered.filter((answeredId) => answeredId !== stageId),
+        };
+      }),
+    };
   } else if (body.action === "reset") {
     const freshRoom = emptyRoom(code);
     room = {
