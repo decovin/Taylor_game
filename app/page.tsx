@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Role = "mestre" | "jogador";
 type StageType = "pergunta" | "missao" | "curiosidade";
@@ -12,6 +12,15 @@ type Stage = {
   prompt: string;
   options?: string[];
   answer?: number;
+};
+
+type RoomState = {
+  code: string;
+  released: number | null;
+  completed: number[];
+  revealed: boolean;
+  version: number;
+  updatedAt: number;
 };
 
 const stages: Stage[] = [
@@ -41,11 +50,19 @@ const typeLabels: Record<StageType, string> = {
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [role, setRole] = useState<Role>("mestre");
-  const [released, setReleased] = useState<number | null>(null);
-  const [completed, setCompleted] = useState<number[]>([]);
+  const [room, setRoom] = useState<RoomState>({
+    code: "1989",
+    released: null,
+    completed: [],
+    revealed: false,
+    version: 0,
+    updatedAt: 0,
+  });
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const [showScore, setShowScore] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
+  const hostToken = useRef("");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("afterglow-demo");
@@ -54,37 +71,101 @@ export default function Home() {
       const parsed = JSON.parse(saved);
       setStarted(Boolean(parsed.started));
       setRole(parsed.role === "jogador" ? "jogador" : "mestre");
-      setReleased(typeof parsed.released === "number" ? parsed.released : null);
-      setCompleted(Array.isArray(parsed.completed) ? parsed.completed : []);
+      hostToken.current =
+        typeof parsed.hostToken === "string" ? parsed.hostToken : "";
     } catch {}
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem(
       "afterglow-demo",
-      JSON.stringify({ started, role, released, completed }),
+      JSON.stringify({ started, role, hostToken: hostToken.current }),
     );
-  }, [started, role, released, completed]);
+  }, [started, role]);
+
+  const syncRoom = useCallback(async () => {
+    try {
+      const result = await fetch("/api/rooms/1989", { cache: "no-store" });
+      if (!result.ok) throw new Error("Não foi possível atualizar a sala.");
+      const data = await result.json();
+      setRoom(data.room);
+      setConnectionError(
+        data.shared
+          ? ""
+          : "Modo local: conecte o armazenamento para usar celulares diferentes.",
+      );
+    } catch {
+      setConnectionError("Conexão instável. Tentando novamente…");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    void syncRoom();
+    const interval = window.setInterval(syncRoom, 700);
+    return () => window.clearInterval(interval);
+  }, [started, syncRoom]);
+
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setShowScore(false);
+  }, [room.released]);
 
   const active = useMemo(
-    () => stages.find((stage) => stage.id === released) ?? null,
-    [released],
+    () => stages.find((stage) => stage.id === room.released) ?? null,
+    [room.released],
   );
 
-  function releaseStage(id: number) {
-    setReleased(id);
-    setSelectedAnswer(null);
-    setRevealed(false);
-    setShowScore(false);
+  async function enterAsMaster() {
+    setBusy(true);
+    setConnectionError("");
+    try {
+      const result = await fetch("/api/rooms/1989", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create" }),
+      });
+      const data = await result.json();
+      if (!result.ok) throw new Error(data.error);
+      hostToken.current = data.hostToken;
+      setRoom(data.room);
+      setRole("mestre");
+      setStarted(true);
+      window.localStorage.setItem(
+        "afterglow-demo",
+        JSON.stringify({
+          started: true,
+          role: "mestre",
+          hostToken: data.hostToken,
+        }),
+      );
+    } catch {
+      setConnectionError("Não foi possível criar a sala. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function finishStage() {
-    if (released && !completed.includes(released)) {
-      setCompleted((items) => [...items, released]);
+  async function hostAction(action: "release" | "reveal" | "finish", stageId?: number) {
+    setBusy(true);
+    try {
+      const result = await fetch("/api/rooms/1989", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-afterglow-host": hostToken.current,
+        },
+        body: JSON.stringify({ action, stageId }),
+      });
+      const data = await result.json();
+      if (!result.ok) throw new Error(data.error);
+      setRoom(data.room);
+      setConnectionError("");
+    } catch {
+      setConnectionError("Comando não enviado. Entre novamente como Mestre.");
+    } finally {
+      setBusy(false);
     }
-    setReleased(null);
-    setSelectedAnswer(null);
-    setRevealed(false);
   }
 
   if (!started) {
@@ -103,13 +184,14 @@ export default function Home() {
               <span>Sala da noite</span>
               <strong>1989</strong>
             </div>
-            <button className="primary-button" onClick={() => { setRole("mestre"); setStarted(true); }}>
-              Criar sala como Mestre <span>→</span>
+            <button className="primary-button" disabled={busy} onClick={enterAsMaster}>
+              {busy ? "Criando sala…" : "Criar sala como Mestre"} <span>→</span>
             </button>
             <button className="secondary-button" onClick={() => { setRole("jogador"); setStarted(true); }}>
               Entrar como Jogador
             </button>
           </div>
+          {connectionError && <p className="connection-error">{connectionError}</p>}
           <p className="fine-print">Protótipo da mecânica · conteúdo demonstrativo</p>
         </section>
       </main>
@@ -124,28 +206,30 @@ export default function Home() {
           <span>SALA 1989</span>
           <strong>{role === "mestre" ? "Painel do Mestre" : "Você é Vini"}</strong>
         </div>
-        <button className="role-switch" onClick={() => setRole(role === "mestre" ? "jogador" : "mestre")}>
-          Ver como {role === "mestre" ? "jogador" : "mestre"}
-        </button>
+        <span className={`connection-badge ${connectionError ? "offline" : ""}`}>
+          {connectionError ? "Reconectando" : "Ao vivo"}
+        </span>
       </header>
+
+      {connectionError && <div className="connection-banner">{connectionError}</div>}
 
       {showScore ? (
         <Scoreboard onClose={() => setShowScore(false)} />
       ) : role === "mestre" ? (
         <HostView
           active={active}
-          completed={completed}
-          revealed={revealed}
-          onRelease={releaseStage}
-          onReveal={() => setRevealed(true)}
-          onFinish={finishStage}
+          completed={room.completed}
+          revealed={room.revealed}
+          onRelease={(id) => void hostAction("release", id)}
+          onReveal={() => void hostAction("reveal")}
+          onFinish={() => void hostAction("finish")}
           onScore={() => setShowScore(true)}
         />
       ) : (
         <PlayerView
           active={active}
           selectedAnswer={selectedAnswer}
-          revealed={revealed}
+          revealed={room.revealed}
           onAnswer={setSelectedAnswer}
           onScore={() => setShowScore(true)}
         />
