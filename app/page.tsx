@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Role = "mestre" | "jogador";
+type PlayerState = {
+  id: string;
+  name: string;
+  score: number;
+  answered: number[];
+};
 type Song = {
   id: number;
   title: string;
@@ -21,6 +27,7 @@ type RoomState = {
   completed: number[];
   revealed: boolean;
   answerRevealed: boolean;
+  players: PlayerState[];
   version: number;
   updatedAt: number;
 };
@@ -28,7 +35,7 @@ type RoomState = {
 const songs: Song[] = [
   {
     id: 1,
-    title: "💕 Love Story",
+    title: "Love Story",
     category: "sem-pergunta",
     instruction: "✨ Antes de começarmos o game, a primeira música é para você entrar no clima do concerto!",
     curiosity: "Essa música foi inspirada em Romeu e Julieta, mas Taylor decidiu dar ao casal um final feliz que Shakespeare nunca escreveu. Rumores dizem que, em seu casamento que aconteceu neste mês, Taylor entrou ao som dessa música instrumental.",
@@ -36,7 +43,7 @@ const songs: Song[] = [
   },
   {
     id: 2,
-    title: "🍂 cardigan",
+    title: "cardigan",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "cardigan fala sobre memórias, amadurecimento e nostalgia. O nome faz referência a um casaco antigo, símbolo de algo confortável que continua tendo valor com o passar do tempo.",
@@ -46,7 +53,7 @@ const songs: Song[] = [
   },
   {
     id: 3,
-    title: "🖋 Blank Space",
+    title: "Blank Space",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa música é uma sátira, onde Taylor exagera a imagem que a mídia criou dela.",
@@ -56,7 +63,7 @@ const songs: Song[] = [
   },
   {
     id: 4,
-    title: "✨ Enchanted",
+    title: "Enchanted",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Enchanted faz parte do álbum Speak Now, escrito inteiramente por Taylor Swift sem coautores — algo raro na indústria e motivo de muito orgulho para ela.",
@@ -66,7 +73,7 @@ const songs: Song[] = [
   },
   {
     id: 5,
-    title: "🪞 Anti-Hero.",
+    title: "Anti-Hero",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Anti-Hero é uma das músicas mais pessoais de Taylor Swift. Em vez de esconder suas inseguranças, ela escolheu transformá-las em arte.",
@@ -76,7 +83,7 @@ const songs: Song[] = [
   },
   {
     id: 6,
-    title: "💜 Lavender Haze",
+    title: "Lavender Haze",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "A expressão “Lavender Haze” era usada nos anos 1950 para descrever o estado de quem está completamente envolvido por uma paixão.",
@@ -86,7 +93,7 @@ const songs: Song[] = [
   },
   {
     id: 7,
-    title: "🌫️ Fortnight",
+    title: "Fortnight",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Fortnight é uma expressão em inglês que significa um período de duas semanas. A música original é uma parceria entre Taylor Swift e Post Malone e fala de uma conexão breve, mas que deixou marcas profundas.",
@@ -96,7 +103,7 @@ const songs: Song[] = [
   },
   {
     id: 8,
-    title: "🧣 All Too Well",
+    title: "All Too Well",
     category: "sem-pergunta",
     instruction: "✨ Agora, o game pausa para você se entregar e apreciar.",
     curiosity: "All Too Well ocupa um lugar único na carreira da Taylor e é considerada por fãs e críticos como sua obra-prima. A versão original, de cerca de 5 minutos, foi lançada em 2012. Em 2021, Taylor lançou a aguardada versão estendida de 10 minutos, acompanhada de um curta-metragem escrito e dirigido pela própria Taylor.",
@@ -104,7 +111,7 @@ const songs: Song[] = [
   },
   {
     id: 9,
-    title: "🚫 We Are Never Ever Getting Back Together",
+    title: "We Are Never Ever Getting Back Together",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa música é sobre a mesma pessoa de All Too Well (a obra-prima de Taylor). Depois que o ex quis reatar o relacionamento, a resposta de Taylor acabou se tornando um dos refrões mais famosos de sua carreira.",
@@ -114,7 +121,7 @@ const songs: Song[] = [
   },
   {
     id: 10,
-    title: "☀️ Cruel Summer",
+    title: "Cruel Summer",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Apesar do título, Cruel Summer não fala sobre uma estação do ano. A música retrata um período intenso e turbulento, com sentimentos à flor da pele.",
@@ -124,7 +131,7 @@ const songs: Song[] = [
   },
   {
     id: 11,
-    title: "🤍 But Daddy I Love Him",
+    title: "But Daddy I Love Him",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Em But Daddy I Love Him, Taylor explora o conflito entre seguir a própria vontade e lidar com as expectativas e opiniões das pessoas ao redor.",
@@ -134,7 +141,7 @@ const songs: Song[] = [
   },
   {
     id: 12,
-    title: "🌟 You Belong With Me",
+    title: "You Belong With Me",
     category: "pergunta",
     instruction: "Sinta a música e se prepare para a pergunta.",
     curiosity: "Essa foi uma das músicas que ajudou a transformar Taylor Swift em um fenômeno mundial. O clipe foi gravado em uma escola real, onde o irmão de Taylor estudava. Mesmo com uma produção simples, o vídeo diversos prêmios, incluindo o MTV Video Music Award de Melhor Vídeo Feminino.",
@@ -144,7 +151,7 @@ const songs: Song[] = [
   },
   {
     id: 13,
-    title: "💃 Shake It Off",
+    title: "Shake It Off",
     category: "sem-pergunta",
     instruction: "✨ Agora, o game termina para você aproveitar o encerramento sem distrações.",
     curiosity: "Essa música é sobre não se importar com as críticas e seguir em frente com leveza. Shake it off é uma expressão em inglês que significa “não se deixar afetar”. Mas shake também significa sacudir, criando um trocadilho com a ideia da música: sacudir as críticas, e sacudir o corpo (dançar). A música marcou a transição definitiva de Taylor Swift para o pop e se tornou um de seus maiores sucessos.",
@@ -158,6 +165,7 @@ const emptyRoom: RoomState = {
   completed: [],
   revealed: false,
   answerRevealed: false,
+  players: [],
   version: 0,
   updatedAt: 0,
 };
@@ -167,9 +175,13 @@ export default function Home() {
   const [role, setRole] = useState<Role>("mestre");
   const [room, setRoom] = useState<RoomState>(emptyRoom);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [visitorName, setVisitorName] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState("");
   const hostToken = useRef("");
+  const playerId = useRef("");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("afterglow-session");
@@ -179,6 +191,8 @@ export default function Home() {
       setStarted(Boolean(parsed.started));
       setRole(parsed.role === "jogador" ? "jogador" : "mestre");
       hostToken.current = typeof parsed.hostToken === "string" ? parsed.hostToken : "";
+      playerId.current = typeof parsed.playerId === "string" ? parsed.playerId : "";
+      setVisitorName(typeof parsed.visitorName === "string" ? parsed.visitorName : "");
     } catch {}
   }, []);
 
@@ -207,36 +221,69 @@ export default function Home() {
     () => songs.find((song) => song.id === room.released) ?? null,
     [room.released],
   );
+  const currentPlayer = useMemo(
+    () => room.players.find((player) => player.id === playerId.current),
+    [room.players],
+  );
 
   async function enterAsMaster() {
+    if (!masterPassword) {
+      setLoginError("Digite a senha do Mestre.");
+      return;
+    }
     setBusy(true);
+    setLoginError("");
     try {
       const response = await fetch("/api/rooms/1989", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create" }),
+        body: JSON.stringify({ action: "login", password: masterPassword }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error(data.error);
       hostToken.current = data.hostToken;
       setRoom({ ...emptyRoom, ...data.room });
       setRole("mestre");
       setStarted(true);
+      setMasterPassword("");
       window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "mestre", hostToken: data.hostToken }));
-    } catch {
-      setConnectionError("Não foi possível criar a sala.");
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "Não foi possível entrar como Mestre.");
     } finally {
       setBusy(false);
     }
   }
 
-  function enterAsPlayer() {
-    setRole("jogador");
-    setStarted(true);
-    window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "jogador" }));
+  async function enterAsPlayer() {
+    const name = visitorName.trim();
+    if (!name) {
+      setLoginError("Digite seu nome para entrar.");
+      return;
+    }
+    setBusy(true);
+    setLoginError("");
+    const id = playerId.current || crypto.randomUUID();
+    try {
+      const response = await fetch("/api/rooms/1989", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "join", playerId: id, playerName: name }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      playerId.current = id;
+      setRoom({ ...emptyRoom, ...data.room });
+      setRole("jogador");
+      setStarted(true);
+      window.localStorage.setItem("afterglow-session", JSON.stringify({ started: true, role: "jogador", playerId: id, visitorName: name }));
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "Não foi possível entrar na sala.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function hostAction(action: "release" | "reveal" | "show-answer" | "finish", stageId?: number) {
+  async function hostAction(action: "release" | "reveal" | "show-answer" | "finish" | "reset", stageId?: number) {
     setBusy(true);
     try {
       const response = await fetch("/api/rooms/1989", {
@@ -254,6 +301,29 @@ export default function Home() {
     }
   }
 
+  async function submitAnswer(index: number) {
+    if (!active || !playerId.current || selectedAnswer !== null) return;
+    setSelectedAnswer(index);
+    try {
+      const response = await fetch("/api/rooms/1989", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "answer",
+          stageId: active.id,
+          answerIndex: index,
+          playerId: playerId.current,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setRoom({ ...emptyRoom, ...data.room });
+    } catch {
+      setSelectedAnswer(null);
+      setConnectionError("Sua resposta não foi enviada. Tente novamente.");
+    }
+  }
+
   if (!started) {
     return (
       <main className="landing">
@@ -267,11 +337,19 @@ export default function Home() {
           <p className="intro">Ouça além da música. Uma experiência entre amigos para descobrir histórias, sensações e novos detalhes em cada arranjo.</p>
           <div className="join-card">
             <div className="room-code"><span>Código da sala</span><strong>1989</strong></div>
-            <button className="primary-button" disabled={busy} onClick={enterAsMaster}>
-              {busy ? "Preparando a noite…" : "Entrar como Mestre"} <span>→</span>
+            <label className="field-label" htmlFor="visitor-name">Seu nome</label>
+            <input id="visitor-name" className="entry-input" value={visitorName} onChange={(event) => setVisitorName(event.target.value)} placeholder="Como podemos te chamar?" maxLength={20} />
+            <button className="primary-button" disabled={busy} onClick={() => void enterAsPlayer()}>
+              Entrar como visitante <span>→</span>
             </button>
-            <button className="secondary-button" onClick={enterAsPlayer}>Entrar como visitante</button>
+            <div className="entry-divider"><span>ou</span></div>
+            <label className="field-label" htmlFor="master-password">Senha do Mestre</label>
+            <input id="master-password" className="entry-input" type="password" value={masterPassword} onChange={(event) => setMasterPassword(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void enterAsMaster()} placeholder="Digite a senha" autoComplete="current-password" />
+            <button className="secondary-button" disabled={busy} onClick={() => void enterAsMaster()}>
+              {busy ? "Entrando…" : "Entrar como Mestre"}
+            </button>
           </div>
+          {loginError && <p className="login-error">{loginError}</p>}
           {connectionError && <p className="connection-error">{connectionError}</p>}
           <p className="fine-print">13 músicas · você não precisa conhecer Taylor Swift</p>
         </section>
@@ -285,7 +363,7 @@ export default function Home() {
         <button className="mini-brand" onClick={() => setStarted(false)} aria-label="Voltar ao início">A</button>
         <div className="room-info">
           <span>SALA 1989</span>
-          <strong>{role === "mestre" ? "Painel do Mestre" : "Modo visitante"}</strong>
+          <strong>{role === "mestre" ? "Painel do Mestre" : `${currentPlayer?.name ?? visitorName} · ${currentPlayer?.score ?? 0} pts`}</strong>
         </div>
         <span className={`connection-badge ${connectionError ? "offline" : ""}`}>{connectionError ? "Prévia" : "Ao vivo"}</span>
       </header>
@@ -297,10 +375,12 @@ export default function Home() {
           revealed={room.revealed}
           answerRevealed={room.answerRevealed}
           busy={busy}
+          players={room.players}
           onRelease={(id) => void hostAction("release", id)}
           onQuestion={() => void hostAction("reveal")}
           onAnswer={() => void hostAction("show-answer")}
           onFinish={() => void hostAction("finish")}
+          onReset={() => void hostAction("reset")}
         />
       ) : (
         <PlayerView
@@ -308,24 +388,29 @@ export default function Home() {
           selectedAnswer={selectedAnswer}
           revealed={room.revealed}
           answerRevealed={room.answerRevealed}
-          onAnswer={setSelectedAnswer}
+          player={currentPlayer}
+          onAnswer={(index) => void submitAnswer(index)}
         />
       )}
     </main>
   );
 }
 
-function HostView({ active, completed, revealed, answerRevealed, busy, onRelease, onQuestion, onAnswer, onFinish }: {
+function HostView({ active, completed, revealed, answerRevealed, busy, players, onRelease, onQuestion, onAnswer, onFinish, onReset }: {
   active: Song | null;
   completed: number[];
   revealed: boolean;
   answerRevealed: boolean;
   busy: boolean;
+  players: PlayerState[];
   onRelease: (id: number) => void;
   onQuestion: () => void;
   onAnswer: () => void;
   onFinish: () => void;
+  onReset: () => void;
 }) {
+  const [confirmReset, setConfirmReset] = useState(false);
+
   if (active) {
     const questionMoment = active.category === "pergunta" && revealed;
     return (
@@ -381,6 +466,18 @@ function HostView({ active, completed, revealed, answerRevealed, busy, onRelease
         <div><span>Experiência da noite</span><strong>{completed.length} de {songs.length}</strong></div>
         <div className="progress-bar"><i style={{ width: `${(completed.length / songs.length) * 100}%` }} /></div>
       </div>
+      {players.length > 0 && (
+        <div className="live-scoreboard">
+          <div className="scoreboard-title"><span>Placar ao vivo</span><small>100 pts por resposta do guia</small></div>
+          <div className="scoreboard-list">
+            {[...players].sort((a, b) => b.score - a.score).map((player, index) => (
+              <div className="scoreboard-player" key={player.id}>
+                <span>{index + 1}</span><strong>{player.name}</strong><b>{player.score} pts</b>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="stage-grid">
         {songs.map((song) => {
           const done = completed.includes(song.id);
@@ -397,15 +494,26 @@ function HostView({ active, completed, revealed, answerRevealed, busy, onRelease
           );
         })}
       </div>
+      <div className="reset-zone">
+        {!confirmReset ? (
+          <button className="reset-button" onClick={() => setConfirmReset(true)}>Reiniciar game do zero</button>
+        ) : (
+          <div className="reset-confirm">
+            <p>Isso apaga o progresso e zera os pontos. Os visitantes continuam na sala.</p>
+            <div><button onClick={() => setConfirmReset(false)}>Cancelar</button><button className="danger" disabled={busy} onClick={() => { onReset(); setConfirmReset(false); }}>Sim, reiniciar</button></div>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
 
-function PlayerView({ active, selectedAnswer, revealed, answerRevealed, onAnswer }: {
+function PlayerView({ active, selectedAnswer, revealed, answerRevealed, player, onAnswer }: {
   active: Song | null;
   selectedAnswer: number | null;
   revealed: boolean;
   answerRevealed: boolean;
+  player?: PlayerState;
   onAnswer: (index: number) => void;
 }) {
   if (!active) {
@@ -415,6 +523,7 @@ function PlayerView({ active, selectedAnswer, revealed, answerRevealed, onAnswer
         <p className="kicker">A experiência continua</p>
         <h1>Viva o concerto.</h1>
         <p>Quando chegar o próximo momento, ele aparecerá aqui — sem você precisar atualizar a tela.</p>
+        <div className="personal-score"><span>Sua pontuação</span><strong>{player?.score ?? 0} pts</strong></div>
         <div className="waiting-chip"><span className="live-dot" /> Esperando o Mestre</div>
       </section>
     );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   emptyRoom,
   getRoom,
@@ -11,9 +12,34 @@ import {
 export const dynamic = "force-dynamic";
 
 type ActionBody = {
-  action?: "create" | "release" | "reveal" | "show-answer" | "finish";
+  action?: "login" | "join" | "answer" | "release" | "reveal" | "show-answer" | "finish" | "reset";
   stageId?: number;
+  answerIndex?: number;
+  password?: string;
+  playerId?: string;
+  playerName?: string;
 };
+
+const MASTER_PASSWORD_HASH =
+  "aea49802178d9b2ba8781b03a131b5523c8947200b74f6d28fd84e9ca1bdb379";
+
+const correctAnswers: Record<number, number> = {
+  2: 2,
+  3: 0,
+  4: 0,
+  5: 1,
+  6: 2,
+  7: 2,
+  9: 2,
+  10: 2,
+  11: 0,
+  12: 0,
+};
+
+function publicRoom<T extends { answers?: unknown }>(room: T) {
+  const { answers: _answers, ...safeRoom } = room;
+  return safeRoom;
+}
 
 function response(data: unknown, status = 200) {
   return NextResponse.json(data, {
@@ -29,7 +55,7 @@ export async function GET(
   const { code: rawCode } = await params;
   const code = rawCode.toUpperCase();
   const room = await getRoom(code);
-  return response({ room, shared: hasSharedStorage() });
+  return response({ room: publicRoom(room), shared: hasSharedStorage() });
 }
 
 export async function POST(
@@ -40,11 +66,71 @@ export async function POST(
   const code = rawCode.toUpperCase();
   const body = (await request.json()) as ActionBody;
 
-  if (body.action === "create") {
+  if (body.action === "login") {
+    const receivedHash = createHash("sha256")
+      .update(body.password ?? "")
+      .digest("hex");
+    const validPassword = timingSafeEqual(
+      Buffer.from(receivedHash),
+      Buffer.from(MASTER_PASSWORD_HASH),
+    );
+    if (!validPassword) {
+      return response({ error: "Senha do Mestre incorreta." }, 401);
+    }
     const hostToken = crypto.randomUUID();
-    const room = emptyRoom(code);
-    await Promise.all([saveRoom(room), saveHost(code, hostToken)]);
-    return response({ room, hostToken, shared: hasSharedStorage() });
+    const room = await getRoom(code);
+    await saveHost(code, hostToken);
+    return response({
+      room: publicRoom(room),
+      hostToken,
+      shared: hasSharedStorage(),
+    });
+  }
+
+  if (body.action === "join") {
+    const playerId = body.playerId?.trim();
+    const playerName = body.playerName?.trim().slice(0, 20);
+    if (!playerId || playerId.length > 80 || !playerName) {
+      return response({ error: "Informe seu nome para entrar." }, 400);
+    }
+    const room = await getRoom(code);
+    const existing = room.players.find((player) => player.id === playerId);
+    room.players = existing
+      ? room.players.map((player) =>
+          player.id === playerId ? { ...player, name: playerName } : player,
+        )
+      : [
+          ...room.players,
+          { id: playerId, name: playerName, score: 0, answered: [] },
+        ];
+    room.version += 1;
+    room.updatedAt = Date.now();
+    await saveRoom(room);
+    return response({ room: publicRoom(room), shared: hasSharedStorage() });
+  }
+
+  if (body.action === "answer") {
+    const room = await getRoom(code);
+    const player = room.players.find((item) => item.id === body.playerId);
+    if (
+      !player ||
+      !room.released ||
+      !room.revealed ||
+      room.answerRevealed ||
+      body.stageId !== room.released ||
+      !Number.isInteger(body.answerIndex)
+    ) {
+      return response({ error: "Esta pergunta não está aceitando respostas." }, 400);
+    }
+    const stageKey = String(room.released);
+    room.answers[stageKey] = {
+      ...(room.answers[stageKey] ?? {}),
+      [player.id]: body.answerIndex!,
+    };
+    room.version += 1;
+    room.updatedAt = Date.now();
+    await saveRoom(room);
+    return response({ room: publicRoom(room), shared: hasSharedStorage() });
   }
 
   const hostToken = request.headers.get("x-afterglow-host");
@@ -63,17 +149,41 @@ export async function POST(
   } else if (body.action === "reveal") {
     room = { ...room, revealed: true };
   } else if (body.action === "show-answer") {
-    room = { ...room, answerRevealed: true };
+    const stageId = room.released;
+    const stageAnswers = stageId ? room.answers[String(stageId)] ?? {} : {};
+    const correctAnswer = stageId ? correctAnswers[stageId] : undefined;
+    const players = room.players.map((player) => {
+      if (!stageId || player.answered.includes(stageId)) return player;
+      const answer = stageAnswers[player.id];
+      if (answer === undefined) return player;
+      return {
+        ...player,
+        score: player.score + (answer === correctAnswer ? 100 : 0),
+        answered: [...player.answered, stageId],
+      };
+    });
+    room = { ...room, players, answerRevealed: true };
   } else if (body.action === "finish") {
     const completed =
       room.released && !room.completed.includes(room.released)
         ? [...room.completed, room.released]
         : room.completed;
     room = { ...room, completed, released: null, revealed: false, answerRevealed: false };
+  } else if (body.action === "reset") {
+    const freshRoom = emptyRoom(code);
+    room = {
+      ...freshRoom,
+      players: current.players.map((player) => ({
+        ...player,
+        score: 0,
+        answered: [],
+      })),
+      version: current.version + 1,
+    };
   } else {
     return response({ error: "Ação inválida." }, 400);
   }
 
   await saveRoom(room);
-  return response({ room, shared: hasSharedStorage() });
+  return response({ room: publicRoom(room), shared: hasSharedStorage() });
 }

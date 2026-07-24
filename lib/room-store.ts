@@ -1,11 +1,20 @@
 import { Redis } from "@upstash/redis";
 
+export type PlayerState = {
+  id: string;
+  name: string;
+  score: number;
+  answered: number[];
+};
+
 export type RoomState = {
   code: string;
   released: number | null;
   completed: number[];
   revealed: boolean;
   answerRevealed: boolean;
+  players: PlayerState[];
+  answers: Record<string, Record<string, number>>;
   version: number;
   updatedAt: number;
 };
@@ -44,6 +53,8 @@ export function emptyRoom(code: string): RoomState {
     completed: [],
     revealed: false,
     answerRevealed: false,
+    players: [],
+    answers: {},
     version: 0,
     updatedAt: Date.now(),
   };

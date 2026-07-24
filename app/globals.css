@@ -41,6 +41,13 @@ button:focus-visible { outline: 3px solid rgba(168,154,223,.42); outline-offset:
 .welcome h1 { font-size: clamp(54px, 16vw, 76px); margin: 0; line-height: .95; }
 .intro { color: var(--muted); font-size: 16px; line-height: 1.55; max-width: 370px; margin: 20px auto 28px; }
 .join-card { background: rgba(20,17,23,.9); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.07); border-radius: 24px; padding: 18px; box-shadow: 0 22px 60px rgba(0,0,0,.3); }
+.field-label { display: block; margin: 0 0 8px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
+.entry-input { width: 100%; min-height: 48px; margin-bottom: 11px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; outline: 0; background: rgba(255,255,255,.05); color: var(--ink); padding: 0 15px; font: inherit; }
+.entry-input::placeholder { color: #6f6872; }
+.entry-input:focus { border-color: rgba(196,165,108,.65); box-shadow: 0 0 0 3px rgba(196,165,108,.1); }
+.entry-divider { display: flex; align-items: center; gap: 12px; margin: 21px 0; color: #716a75; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.entry-divider::before, .entry-divider::after { height: 1px; flex: 1; content: ""; background: rgba(255,255,255,.08); }
+.login-error { margin: -2px 0 11px; color: #ef9a9a; font-size: 12px; text-align: left; }
 .room-code { display: flex; justify-content: space-between; align-items: center; padding: 5px 3px 17px; color: var(--muted); font-size: 13px; }
 .room-code strong { font-size: 20px; letter-spacing: .14em; color: var(--ink); }
 .primary-button, .secondary-button, .score-button, .role-switch, .back-button { border: 0; cursor: pointer; min-height: 48px; font-weight: 800; border-radius: 14px; }
@@ -74,6 +81,21 @@ button:focus-visible { outline: 3px solid rgba(168,154,223,.42); outline-offset:
 .progress-wrap strong { color: var(--ink); }
 .progress-bar { height: 6px; border-radius: 8px; background: #242027; overflow: hidden; }
 .progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--purple)); border-radius: inherit; transition: width .3s ease; }
+.live-scoreboard { margin: 18px 0; border: 1px solid rgba(255,255,255,.08); border-radius: 18px; background: rgba(255,255,255,.025); padding: 15px; }
+.scoreboard-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.scoreboard-title span { color: var(--ink); font-size: 15px; font-weight: 800; }
+.scoreboard-title small { color: var(--muted); font-size: 10px; }
+.scoreboard-list { display: grid; gap: 7px; }
+.scoreboard-player { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; border-radius: 11px; background: rgba(255,255,255,.045); padding: 10px 12px; font-size: 13px; }
+.scoreboard-player > span { color: var(--muted); }
+.scoreboard-player b { color: var(--gold); }
+.reset-zone { margin-top: 22px; border-top: 1px solid rgba(255,255,255,.07); padding-top: 18px; }
+.reset-button { border: 1px solid rgba(239,154,154,.3); border-radius: 12px; background: transparent; color: #ef9a9a; padding: 10px 14px; font: inherit; font-weight: 800; cursor: pointer; }
+.reset-confirm { border: 1px solid rgba(239,154,154,.28); border-radius: 14px; background: rgba(239,68,68,.06); padding: 14px; }
+.reset-confirm p { margin: 0 0 12px; font-size: 13px; }
+.reset-confirm > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.reset-confirm button { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(255,255,255,.05); color: var(--ink); padding: 9px 12px; font: inherit; cursor: pointer; }
+.reset-confirm .danger { border-color: rgba(239,154,154,.35); background: rgba(239,68,68,.15); color: #ffc5c5; }
 .stage-grid { display: grid; gap: 10px; }
 .stage-card { width: 100%; min-height: 86px; display: grid; grid-template-columns: 48px 1fr auto; text-align: left; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,.07); background: rgba(20,17,23,.88); padding: 12px; border-radius: 18px; color: var(--ink); cursor: pointer; box-shadow: 0 7px 18px rgba(0,0,0,.12); transition: transform .15s ease, border-color .15s ease; }
 .stage-card:active { transform: scale(.985); }
@@ -135,6 +157,7 @@ button:focus-visible { outline: 3px solid rgba(168,154,223,.42); outline-offset:
 .waiting-screen h1 { font-size: 42px; margin: 0 0 12px; }
 .waiting-screen > p:not(.kicker) { color: var(--muted); max-width: 330px; line-height: 1.5; margin: 0; }
 .waiting-chip { background: #141117; border: 1px solid rgba(255,255,255,.07); border-radius: 99px; color: var(--muted); font-size: 11px; font-weight: 800; margin-top: 26px; padding: 11px 14px; box-shadow: 0 7px 20px rgba(0,0,0,.15); }
+.personal-score { display: inline-flex; gap: 8px; margin-top: 14px; border: 1px solid rgba(196,165,108,.25); border-radius: 99px; background: rgba(196,165,108,.08); color: var(--gold); padding: 8px 13px; font-weight: 800; }
 .waiting-question { color: var(--muted); font-size: 11px; font-weight: 800; text-align: center; margin-top: 20px; }
 .waiting-question i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--purple); margin-right: 7px; animation: pulse 1.3s infinite; }
 .result-message { display: flex; gap: 12px; align-items: center; background: #172821; color: #9bc7b8; border: 1px solid #28483d; border-radius: 18px; padding: 16px; margin-top: 18px; }
