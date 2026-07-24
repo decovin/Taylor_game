@@ -196,6 +196,7 @@ export default function Home() {
   const [loginError, setLoginError] = useState("");
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState("");
+  const [syncReady, setSyncReady] = useState(false);
   const hostToken = useRef("");
   const playerId = useRef("");
 
@@ -218,6 +219,7 @@ export default function Home() {
       if (!response.ok) throw new Error();
       const data = await response.json();
       setRoom({ ...emptyRoom, ...data.room });
+      setSyncReady(true);
       setConnectionError(data.shared ? "" : "Prévia local · a sincronização entre celulares funciona após conectar o Redis na Vercel.");
     } catch {
       setConnectionError("Conexão instável. Tentando novamente…");
@@ -247,6 +249,15 @@ export default function Home() {
       .sort((a, b) => b.score - a.score)
       .findIndex((player) => player.id === currentPlayer.id) + 1;
   }, [currentPlayer, room.players]);
+
+  useEffect(() => {
+    if (!syncReady || !started || role !== "jogador" || !playerId.current) return;
+    if (room.players.some((player) => player.id === playerId.current)) return;
+    window.localStorage.removeItem("afterglow-session");
+    playerId.current = "";
+    setStarted(false);
+    setLoginError("O Mestre removeu você desta sessão.");
+  }, [role, room.players, started, syncReady]);
 
   async function enterAsMaster() {
     if (!masterPassword) {
@@ -346,6 +357,24 @@ export default function Home() {
     }
   }
 
+  async function removePlayer(playerIdToRemove: string) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/rooms/1989", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-afterglow-host": hostToken.current },
+        body: JSON.stringify({ action: "remove-player", playerId: playerIdToRemove }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error();
+      setRoom({ ...emptyRoom, ...data.room });
+    } catch {
+      setConnectionError("Não foi possível excluir o visitante.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!started) {
     return (
       <main className="landing">
@@ -405,6 +434,7 @@ export default function Home() {
           onFinish={() => void hostAction("finish")}
           onResetCurrent={() => void hostAction("reset-current")}
           onReset={() => void hostAction("reset")}
+          onRemovePlayer={(id) => void removePlayer(id)}
         />
       ) : (
         <PlayerView
@@ -422,7 +452,7 @@ export default function Home() {
   );
 }
 
-function HostView({ active, completed, revealed, answerRevealed, busy, players, answeredCount, onRelease, onQuestion, onAnswer, onFinish, onResetCurrent, onReset }: {
+function HostView({ active, completed, revealed, answerRevealed, busy, players, answeredCount, onRelease, onQuestion, onAnswer, onFinish, onResetCurrent, onReset, onRemovePlayer }: {
   active: Song | null;
   completed: number[];
   revealed: boolean;
@@ -436,9 +466,11 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
   onFinish: () => void;
   onResetCurrent: () => void;
   onReset: () => void;
+  onRemovePlayer: (id: string) => void;
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmCurrentReset, setConfirmCurrentReset] = useState(false);
+  const [playerToRemove, setPlayerToRemove] = useState<PlayerState | null>(null);
 
   if (active) {
     const questionMoment = active.category === "pergunta" && revealed;
@@ -516,8 +548,18 @@ function HostView({ active, completed, revealed, answerRevealed, busy, players, 
             {[...players].sort((a, b) => b.score - a.score).map((player, index) => (
               <div className="scoreboard-player" key={player.id}>
                 <span>{index + 1}</span><strong>{player.name}</strong><b>{player.score} pts</b>
+                <button type="button" aria-label={`Excluir ${player.name}`} onClick={() => setPlayerToRemove(player)}>Excluir</button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {playerToRemove && (
+        <div className="remove-player-confirm" role="alertdialog" aria-modal="true">
+          <p>Excluir <strong>{playerToRemove.name}</strong> desta sessão?</p>
+          <div>
+            <button onClick={() => setPlayerToRemove(null)}>Cancelar</button>
+            <button className="danger" disabled={busy} onClick={() => { onRemovePlayer(playerToRemove.id); setPlayerToRemove(null); }}>Sim, excluir</button>
           </div>
         </div>
       )}

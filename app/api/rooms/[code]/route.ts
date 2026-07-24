@@ -12,7 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type ActionBody = {
-  action?: "login" | "join" | "answer" | "release" | "reveal" | "show-answer" | "finish" | "reset-current" | "reset";
+  action?: "login" | "join" | "answer" | "release" | "reveal" | "show-answer" | "finish" | "remove-player" | "reset-current" | "reset";
   stageId?: number;
   answerIndex?: number;
   password?: string;
@@ -176,6 +176,23 @@ export async function POST(
         ? [...room.completed, room.released]
         : room.completed;
     room = { ...room, completed, released: null, revealed: false, answerRevealed: false };
+  } else if (body.action === "remove-player") {
+    const playerId = body.playerId?.trim();
+    if (!playerId || !current.players.some((player) => player.id === playerId)) {
+      return response({ error: "Visitante não encontrado." }, 404);
+    }
+    room = {
+      ...room,
+      players: current.players.filter((player) => player.id !== playerId),
+      answers: Object.fromEntries(
+        Object.entries(current.answers).map(([stageId, stageAnswers]) => [
+          stageId,
+          Object.fromEntries(
+            Object.entries(stageAnswers).filter(([answerPlayerId]) => answerPlayerId !== playerId),
+          ),
+        ]),
+      ),
+    };
   } else if (body.action === "reset-current") {
     const stageId = current.released;
     if (!stageId) {

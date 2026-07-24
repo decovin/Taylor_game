@@ -86,9 +86,15 @@ button:focus-visible { outline: 3px solid rgba(168,154,223,.42); outline-offset:
 .scoreboard-title span { color: var(--ink); font-size: 15px; font-weight: 800; }
 .scoreboard-title small { color: var(--muted); font-size: 10px; }
 .scoreboard-list { display: grid; gap: 7px; }
-.scoreboard-player { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; border-radius: 11px; background: rgba(255,255,255,.045); padding: 10px 12px; font-size: 13px; }
+.scoreboard-player { display: grid; grid-template-columns: 24px 1fr auto auto; align-items: center; gap: 8px; border-radius: 11px; background: rgba(255,255,255,.045); padding: 10px 12px; font-size: 13px; }
 .scoreboard-player > span { color: var(--muted); }
 .scoreboard-player b { color: var(--gold); }
+.scoreboard-player button { min-height: 34px; border: 1px solid rgba(239,154,154,.25); border-radius: 9px; background: transparent; color: #d89c9c; padding: 0 9px; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.remove-player-confirm { margin: -6px 0 18px; border: 1px solid rgba(239,154,154,.28); border-radius: 15px; background: rgba(239,68,68,.07); padding: 14px; }
+.remove-player-confirm p { margin: 0 0 12px; font-size: 14px; }
+.remove-player-confirm > div { display: flex; gap: 8px; }
+.remove-player-confirm button { min-height: 42px; flex: 1; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(255,255,255,.05); color: var(--ink); font: inherit; cursor: pointer; }
+.remove-player-confirm .danger { border-color: rgba(239,154,154,.38); background: rgba(239,68,68,.15); color: #ffc5c5; }
 .reset-zone { margin-top: 22px; border-top: 1px solid rgba(255,255,255,.07); padding-top: 18px; }
 .reset-button { border: 1px solid rgba(239,154,154,.3); border-radius: 12px; background: transparent; color: #ef9a9a; padding: 10px 14px; font: inherit; font-weight: 800; cursor: pointer; }
 .reset-confirm { border: 1px solid rgba(239,154,154,.28); border-radius: 14px; background: rgba(239,68,68,.06); padding: 14px; }
