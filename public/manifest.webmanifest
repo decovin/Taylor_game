@@ -1,0 +1,10 @@
+{
+  "name": "Afterglow — uma noite em quatro atos",
+  "short_name": "Afterglow",
+  "description": "Um jogo rápido para acompanhar uma noite Candlelight entre amigos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffaf4",
+  "theme_color": "#17121e",
+  "orientation": "portrait"
+}
